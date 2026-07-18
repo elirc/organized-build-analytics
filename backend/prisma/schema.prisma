@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  auditEvents  AuditEvent[]
+  exportJobs   ExportJob[]
+  tokens       RefreshToken[]
+}
+
+model TrackedEvent {
+  id         String    @id @default(uuid())
+  eventType  EventType
+  entityType String?
+  entityId   String?
+  actorId    String?
+  actorEmail String?
+  sessionId  String?
+  requestId  String?
+  metadata   Json?
+  occurredAt DateTime  @default(now())
+
+  @@index([eventType])
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([occurredAt])
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model MonitoringMetric {
+  id         String               @id @default(uuid())
+  metricType MonitoringMetricType
+  name       String
+  value      Float
+  unit       String?
+  tags       Json?
+  recordedAt DateTime             @default(now())
+
+  @@index([metricType])
+  @@index([name])
+  @@index([recordedAt])
+}
+
+model MetricSnapshot {
+  id          String     @id @default(uuid())
+  metricKey   String
+  metricType  MetricType
+  value       Float
+  dimensions  Json?
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime   @default(now())
+
+  @@index([metricKey])
+  @@index([periodStart, periodEnd])
+}
+
+model DashboardConfig {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  role        Role
+  layoutJson  Json
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([role])
+}
+
+model ExportJob {
+  id           String       @id @default(uuid())
+  requestedById String
+  requestedBy   User         @relation(fields: [requestedById], references: [id])
+  exportType    ExportType
+  status        ExportStatus @default(PENDING)
+  filtersJson   Json?
+  fileName      String?
+  fileUrl       String?
+  rowCount      Int?
+  errorMessage  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  completedAt   DateTime?
+  expiresAt     DateTime?
+
+  @@index([requestedById])
+  @@index([status])
+  @@index([exportType])
+  @@index([createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum Role {
+  SYSTEM_ADMIN
+  OPS_MANAGER
+  PRODUCT_MANAGER
+  ENGINEERING_ADMIN
+  AUDIT_VIEWER
+  EXECUTIVE_VIEWER
+  READ_ONLY
+}
+
+enum EventType {
+  USER_SIGNED_UP
+  USER_LOGGED_IN
+  USER_LOGIN_FAILED
+  FEATURE_USED
+  RECORD_CREATED
+  RECORD_UPDATED
+  RECORD_DELETED
+  CSV_EXPORTED
+  API_ERROR
+  BACKGROUND_JOB_FAILED
+  ADMIN_ACTION
+}
+
+enum MetricType {
+  COUNT
+  SUM
+  AVERAGE
+  RATE
+  PERCENTAGE
+  DURATION
+}
+
+enum MonitoringMetricType {
+  API_LATENCY
+  ERROR_RATE
+  JOB_FAILURE_RATE
+  QUEUE_DEPTH
+  DB_QUERY_TIME
+  CACHE_HIT_RATE
+}
+
+enum ExportType {
+  TRACKED_EVENTS
+  AUDIT_EVENTS
+  KPI_SUMMARY
+  MONITORING_METRICS
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
