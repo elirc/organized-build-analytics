@@ -44,10 +44,13 @@ On the frontend:
 
 ## Good First Exercises
 
-- Change the KPI summary card order for one dashboard role.
+Worked versions of several of these, each with a concrete check, are in
+[FIRST_PR_GUIDE.md](FIRST_PR_GUIDE.md). The short list:
+
+- Show the KPI summary on a dashboard page that doesn't load it yet.
 - Add one new metric to the monitoring summary.
 - Add one new field to an export.
-- Create a new audit action and trace it through the UI.
+- Create a new audit action and confirm it appears for an `AUDIT_VIEWER`.
 
 ## Common New-Engineer Traps
 
